@@ -1,9 +1,15 @@
-# import sys
-# note = " ".join(sys.argv[1:])
-
 import argparse
 from pathlib import Path
 from datetime import date, datetime
+
+# Constants
+SUCCESS = 0
+ERR_DUPLICATE = 1 
+ERR_BAD_INPUT = 2 
+ERR_IO = 3 
+ERR_UNKNOWN = 9
+
+
 
 parser = argparse.ArgumentParser(
     description="Append a dated note to log.txt or list recent enteries"
@@ -50,7 +56,7 @@ if args.list_count:
     last = lines[-args.list_count:] if args.list_count > 0 else []
     for ln in last:
         print(ln)
-    raise SystemExit(0)
+    raise SystemExit(SUCCESS)
 
 
 # Handle the "date" action
@@ -59,7 +65,7 @@ if args.on_date:
         target_date = datetime.strptime(args.on_date, "%Y-%m-%d").date()
     except ValueError:
         print("Error: --date must be in YYYY-MM-DD format")
-        raise SystemExit(2)
+        raise SystemExit(ERR_BAD_INPUT)
 else:
     target_date = date.today()
     
@@ -74,19 +80,17 @@ already = any(ln.startswith(prefix) for ln in lines)
 
 if already and not args.force:
     print(f"Entry for {target_date.isoformat()} already exists. Use --force to add another anyway")
-    raise SystemExit(1)
+    raise SystemExit(ERR_DUPLICATE)
 
 entry = f"{target_date.isoformat()}: {note_text}\n"
-with log_path.open("a", encoding="utf-8") as f:
-    f.write(entry)
+
+try:
+    with log_path.open("a", encoding="utf-8") as f: 
+        f.write(entry)
+except OSError as e:
+    print(f"File error: {e}")
+    raise SystemExit(ERR_IO)
     
 print(f"Logged: {entry.strip()}")
+raise SystemExit(SUCCESS)
 
-# today = date.today().isoformat()
-
-# entry = f"{today}: {note}\n"
-
-# with open("log.txt", "a") as file:
-#     file.write(entry)
-    
-# print(f"Logged: {entry.strip()}")

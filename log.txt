@@ -1,1 +1,5 @@
 2025-10-31: showed up today, opened VS Code
+2025-11-03: Showed up.
+2025-11-03: researched argparse
+2025-11-04: Exit code test for success
+2025-11-04: looked into error codes, tried setting up a bit of automated git push maybe? This is a test of that.
