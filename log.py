@@ -10,10 +10,44 @@ ERR_IO = 3
 ERR_UNKNOWN = 9
 
 
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        description="Append a dated note to log.txt or list recent enteries"
+    )
+    return parser.parse_args(argv)
 
-parser = argparse.ArgumentParser(
-    description="Append a dated note to log.txt or list recent enteries"
+def get_log_path(filename: str | None = None) -> Path:
+    return Path(filename or "log.txt")
+
+def read_lines(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    return [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+
+def write_entry(path: Path, entry: str) -> None:
+    with path.open("a", encoding="utf-8") as f:
+        f.write(entry)
+        
+def format_entry(d: date, note: str) -> str:
+    note = (note or "").strip() or "Showed up."
+    return f"{d.isoformat()}: {note}\n"
+
+def has_entry(lines: list[str], ymd: str) -> bool:
+    prefix = f"{ymd}:"
+    return any(ln.startswith(prefix) for ln in lines)
+
+def list_last(lines: list[str], n: int) -> list[str]:
+    return lines[-n:] if n > 0 else []
+
+
+parser.add_argument(
+    "--list",
+    dest="list_count",
+    type=int,
+    metavar="N",
+    help="Show the last N enteries instead of writing a new entry",
 )
+
 
 parser.add_argument(
     "note",
@@ -28,13 +62,6 @@ parser.add_argument(
     help="Log for a specific date rather than today",
 )
 
-parser.add_argument(
-    "--list",
-    dest="list_count",
-    type=int,
-    metavar="N",
-    help="Show the last N enteries instead of writing a new entry",
-)
 
 parser.add_argument(
     "--force",
@@ -42,12 +69,27 @@ parser.add_argument(
     help="Allow multiple enteries on the same date",
 )
 
+parser.add_argument(
+    "--prompt",
+    action="store_true",
+    help="Interactive prompt for the note text",
+)
+
+parser.add_argument(
+    "--file",
+    dest="logfile",
+    default="log.txt",
+    help="Filepath of the Log (default: log.txt)",
+)
+
 args = parser.parse_args()
 
-log_path = Path("log.txt")
-if not log_path.exists():
-    log_path.touch()
+# log_path = Path("log.txt")
+# if not log_path.exists():
+#     log_path.touch()
 
+
+log_path = Path(get_log_path)
 text = log_path.read_text(encoding="utf-8")
 lines = [ln for ln in text.splitlines() if ln.strip()]
 
@@ -70,10 +112,18 @@ else:
     target_date = date.today()
     
 # Handle the "note" 
-note_text = " ".join(args.note).strip()
+if args.prompt:
+    try: 
+        note_text = input("What did you do today? ").strip()
+    except EOFError:
+        note_text = ""
+else:
+    note_text = " ".join(args.note).strip()
+
 if not note_text:
-    note_text= "Showed up."
+    note_text = "Showed up."
     
+        
 # Handle not posting the same entry twice in a day, unless on purpose 
 prefix = f"{target_date.isoformat()}:"
 already = any(ln.startswith(prefix) for ln in lines)
