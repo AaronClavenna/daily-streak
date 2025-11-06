@@ -4,3 +4,4 @@
 2025-11-04: Exit code test for success
 2025-11-04: looked into error codes, tried setting up a bit of automated git push maybe? This is a test of that.
 2025-11-05: Added a prompt option
+2025-11-06: Refactored into a main and helper functions set up

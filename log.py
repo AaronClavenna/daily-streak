@@ -10,12 +10,7 @@ ERR_IO = 3
 ERR_UNKNOWN = 9
 
 
-def parse_args(argv):
-    parser = argparse.ArgumentParser(
-        description="Append a dated note to log.txt or list recent enteries"
-    )
-    return parser.parse_args(argv)
-
+# ---- Helper Functions ----
 def get_log_path(filename: str | None = None) -> Path:
     return Path(filename or "log.txt")
 
@@ -40,107 +35,177 @@ def list_last(lines: list[str], n: int) -> list[str]:
     return lines[-n:] if n > 0 else []
 
 
-parser.add_argument(
-    "--list",
-    dest="list_count",
-    type=int,
-    metavar="N",
-    help="Show the last N enteries instead of writing a new entry",
-)
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        description="Append a dated note to log.txt or list recent enteries"
+    )
+
+    # With no arguements, just shunts forward the default
+    parser.add_argument(
+        "note",
+        nargs="*",
+        help="What you did today. If omitted, defaults to 'Showed up.'",
+    )
+    
+    # List most recent N entries 
+    parser.add_argument(
+        "--list",
+        dest="list_count",
+        type=int,
+        metavar="N",
+        help="Show the last N enteries instead of writing a new entry",
+    )
+
+    # ----- Options ------
+    parser.add_argument(
+        "--date",
+        dest="on_date",
+        metavar="YYYY-MM-DD",
+        help="Log for a specific date rather than today",
+    )
+
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Allow multiple enteries on the same date",
+    )
+
+    parser.add_argument(
+        "--prompt",
+        action="store_true",
+        help="Interactive prompt for the note text",
+    )
+
+    parser.add_argument(
+        "--file",
+        dest="logfile",
+        default="log.txt",
+        help="Filepath of the Log (default: log.txt)",
+    )
+    
+    
+    return parser.parse_args(argv)
 
 
-parser.add_argument(
-    "note",
-    nargs="*",
-    help="What you did today. If omitted, defaults to 'Showed up.'",
-)
-
-parser.add_argument(
-    "--date",
-    dest="on_date",
-    metavar="YYYY-MM-DD",
-    help="Log for a specific date rather than today",
-)
-
-
-parser.add_argument(
-    "--force",
-    action="store_true",
-    help="Allow multiple enteries on the same date",
-)
-
-parser.add_argument(
-    "--prompt",
-    action="store_true",
-    help="Interactive prompt for the note text",
-)
-
-parser.add_argument(
-    "--file",
-    dest="logfile",
-    default="log.txt",
-    help="Filepath of the Log (default: log.txt)",
-)
-
-args = parser.parse_args()
 
 # log_path = Path("log.txt")
 # if not log_path.exists():
 #     log_path.touch()
 
 
-log_path = Path(get_log_path)
-text = log_path.read_text(encoding="utf-8")
-lines = [ln for ln in text.splitlines() if ln.strip()]
+# log_path = Path(get_log_path)
+# text = log_path.read_text(encoding="utf-8")
+# lines = [ln for ln in text.splitlines() if ln.strip()]
 
-# Handle the "list" action
-if args.list_count:
-    last = lines[-args.list_count:] if args.list_count > 0 else []
-    for ln in last:
-        print(ln)
-    raise SystemExit(SUCCESS)
+# # Handle the "list" action
+# if args.list_count:
+#     last = lines[-args.list_count:] if args.list_count > 0 else []
+#     for ln in last:
+#         print(ln)
+#     raise SystemExit(SUCCESS)
 
 
-# Handle the "date" action
-if args.on_date:
-    try:
-        target_date = datetime.strptime(args.on_date, "%Y-%m-%d").date()
-    except ValueError:
-        print("Error: --date must be in YYYY-MM-DD format")
-        raise SystemExit(ERR_BAD_INPUT)
-else:
-    target_date = date.today()
+# # Handle the "date" action
+# if args.on_date:
+#     try:
+#         target_date = datetime.strptime(args.on_date, "%Y-%m-%d").date()
+#     except ValueError:
+#         print("Error: --date must be in YYYY-MM-DD format")
+#         raise SystemExit(ERR_BAD_INPUT)
+# else:
+#     target_date = date.today()
     
-# Handle the "note" 
-if args.prompt:
-    try: 
-        note_text = input("What did you do today? ").strip()
-    except EOFError:
-        note_text = ""
-else:
-    note_text = " ".join(args.note).strip()
+# # Handle the "note" 
+# if args.prompt:
+#     try: 
+#         note_text = input("What did you do today? ").strip()
+#     except EOFError:
+#         note_text = ""
+# else:
+#     note_text = " ".join(args.note).strip()
 
-if not note_text:
-    note_text = "Showed up."
+# if not note_text:
+#     note_text = "Showed up."
     
         
-# Handle not posting the same entry twice in a day, unless on purpose 
-prefix = f"{target_date.isoformat()}:"
-already = any(ln.startswith(prefix) for ln in lines)
+# # Handle not posting the same entry twice in a day, unless on purpose 
+# prefix = f"{target_date.isoformat()}:"
+# already = any(ln.startswith(prefix) for ln in lines)
 
-if already and not args.force:
-    print(f"Entry for {target_date.isoformat()} already exists. Use --force to add another anyway")
-    raise SystemExit(ERR_DUPLICATE)
+# if already and not args.force:
+#     print(f"Entry for {target_date.isoformat()} already exists. Use --force to add another anyway")
+#     raise SystemExit(ERR_DUPLICATE)
 
-entry = f"{target_date.isoformat()}: {note_text}\n"
+# entry = f"{target_date.isoformat()}: {note_text}\n"
 
-try:
-    with log_path.open("a", encoding="utf-8") as f: 
-        f.write(entry)
-except OSError as e:
-    print(f"File error: {e}")
-    raise SystemExit(ERR_IO)
+
+# ---- Orchestration ---- 
+def main(argv: list[str]) -> int:
+    try:
+        args = parse_args(argv)
+        log_path = get_log_path(args.logfile)
+        lines = read_lines(log_path)
+
+        # LIST mode (no changes to log)
+        if args.list_count: 
+            for ln in list_last(lines, args.list_count):
+                print(ln)
+            return SUCCESS
+        
+        # NOTE text (via prompt or argument)
+        if args.prompt:
+            try: 
+                note_text = input("What did you work on today? ").strip()
+            except EOFError:
+                note_text = ""
+        else:
+            note_text = " ".join(args.note).strip()
+
+        # DATE 
+        if args.on_date:
+            try: 
+                target_date = datetime.strptime(args.on_date, "%Y-%m-%d").date()
+            except ValueError:
+                print("Error: --date must be in YYYY-MM-DD format. ")
+                return ERR_BAD_INPUT
+        else:
+            target_date = date.today()
+        
+        ymd = target_date.isoformat()
+        
+        # DUPLICATE checker 
+        if has_entry(lines, ymd) and not args.force:
+            print(f"Entry for {ymd} already exists. Use --force to add another. ")
+            return ERR_DUPLICATE
+        
+        # WRITE 
+        entry = format_entry(target_date, note_text)
+        try:
+            write_entry(log_path, entry)
+        except OSError as e:
+            print(f"File error: {e}")
+            return ERR_IO
+        
+        print(f"Logged: {entry.strip()}")
+        return SUCCESS
     
-print(f"Logged: {entry.strip()}")
-raise SystemExit(SUCCESS)
+    except Exception as e:
+        #oh no 
+        print(f"Unexpected error: {e}")
+        return ERR_UNKNOWN
+        
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main(sys.argv[1:]))
+
+# try:
+#     with log_path.open("a", encoding="utf-8") as f: 
+#         f.write(entry)
+# except OSError as e:
+#     print(f"File error: {e}")
+#     raise SystemExit(ERR_IO)
+    
+# print(f"Logged: {entry.strip()}")
+# raise SystemExit(SUCCESS)
 
