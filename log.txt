@@ -7,3 +7,4 @@
 2025-11-06: Refactored into a main and helper functions set up
 2025-11-14: Cleaned up code, added namespace
 2025-11-17: Trying out pytest, not successfully
+2025-11-18: Adding more tests, testing tests
