@@ -75,6 +75,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Interactive prompt for the note text.",
     )
+    
+    parser.add_argument(
+        "--reverse",
+        action="store_true",
+        help="List the newest entries first."
+    )
 
     parser.add_argument(
         "--file",
@@ -92,14 +98,19 @@ def main(argv: list[str]) -> int:
         args = parse_args(argv)
         log_path = get_log_path(args.logfile)
         lines = read_lines(log_path)
+        lines_to_show = [""]
 
         # LIST mode (no changes to log)
-        if args.list_count is not None: 
+        if args.list_count is not None:
             if args.list_count <= 0:
                 return SUCCESS
             for ln in list_last(lines, args.list_count): 
-                print(ln)
+                lines_to_show += ln 
+            if args.reverse:
+                lines_to_show = list(reversed(lines_to_show))
+            print(lines_to_show)
             return SUCCESS
+        # ----- todo: currently prints each letter as a seperate entry in the list, rather than each line
         
         # NOTE text (via prompt or argument)
         if args.prompt:

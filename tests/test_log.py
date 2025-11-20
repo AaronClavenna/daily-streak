@@ -42,3 +42,16 @@ def test_force_allows_second_entry(tmp_path):
     lines = logfile.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 2
     
+from log import main, SUCCESS
+def test_list_mode_with_reverse(tmp_path, capsys):
+    logfile = tmp_path / "log.txt"
+    assert main(["--file", str(logfile), "first"]) == SUCCESS
+    assert main(["--file", str(logfile), "--force", "second"]) == SUCCESS
+    code = main(["--file", str(logfile), "--list", "2", "--reverse"])
+    out = capsys.readouterr().out
+    assert code == SUCCESS
+    assert out.count("\n") == 2
+    assert out[0] == "second"
+    assert out[1] == "first"
+    
+    
