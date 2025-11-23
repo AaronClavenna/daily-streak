@@ -33,6 +33,16 @@ def has_entry(lines: list[str], ymd: str) -> bool:
 def list_last(lines: list[str], n: int) -> list[str]:
     return lines[-n:] if n > 0 else []
 
+def summarize_dates(lines: list[str]) -> dict[str, str]:
+    dates = [ln[:10] for ln in lines if len(ln) >=10 and ln[4] == "-" and ln[7] == "-"]
+    if not dates:
+        return {"total": "0", "first": "-", "last": "-"}
+    return{
+        "total": str(len(dates)), 
+        "first": min(dates),
+        "last": max(dates),
+    }
+
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -81,6 +91,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="List the newest entries first."
     )
+    
+    parser.add_argument(
+        "--stats", 
+        action="store_true",
+        help="Show a brief summary of logged entries, without adding a new entry."
+    )
 
     parser.add_argument(
         "--file",
@@ -104,13 +120,19 @@ def main(argv: list[str]) -> int:
         if args.list_count is not None:
             if args.list_count <= 0:
                 return SUCCESS
-            for ln in list_last(lines, args.list_count): 
-                lines_to_show += ln 
+            lines_to_show = list_last(lines, args.list_count)
             if args.reverse:
                 lines_to_show = list(reversed(lines_to_show))
-            print(lines_to_show)
+            print("\n".join(lines_to_show))
             return SUCCESS
         # ----- todo: currently prints each letter as a seperate entry in the list, rather than each line
+        
+        if args.stats:
+            s = summarize_dates(lines)
+            print(f"Total: {s['total']} entries")
+            print(f"Most Recent: {s['last']}")
+            print(f"First Entry: {s['first']}")
+            return SUCCESS
         
         # NOTE text (via prompt or argument)
         if args.prompt:

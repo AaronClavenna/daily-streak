@@ -9,3 +9,5 @@
 2025-11-17: Trying out pytest, not successfully
 2025-11-18: Adding more tests, testing tests
 2025-11-19: Reviewed code for understanding
+2025-11-23: prompt
+2025-11-23: Corrected the logic of List/Reverse
